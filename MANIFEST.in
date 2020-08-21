@@ -1,0 +1,4 @@
+include requirements*.txt
+include README.md
+recursive-include raspberrypi_omxplayer_control/static *
+recursive-include raspberrypi_omxplayer_control/templates *

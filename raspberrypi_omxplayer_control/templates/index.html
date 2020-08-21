@@ -1,0 +1,199 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <h3>Управление малиной</h3>
+    <div class="sm-9">
+        <button type="button" class="btn btn-danger" onclick="shutdown()">Выключить</button>
+        <button type="button" class="btn btn-warning" onclick="stop_file()">Остановить</button>
+        <button type="button" class="btn btn-primary" onclick="pause_file()">Пауза/Продолжить</button>
+        <div class="form-group">
+            <label for="watch_position">Прогресс (/)</label>
+            <input type="range" class="form-control-range" id="watch_position" min="0" max="0">
+        </div>
+    </div>
+    <table class="table table-borderless table-striped table-earning" id="table_files">
+        <thead>
+        <tr>
+            <th scope="col" class="">Имя файла</th>
+            <th scope="col" class="w-25">Размер</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr>
+            <th scope="row">
+                <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#model_youtube">
+                    YouTube видео
+                </button>
+            </th>
+            <td></td>
+        </tr>
+        </tbody>
+    </table>
+
+    <div class="modal fade" id="model_youtube" tabindex="-1" role="dialog" aria-labelledby="model_youtubelabel"
+         aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="model_youtubelabel">YouTube видео</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="youtube_url">Адрес видео</label>
+                        <input type="url" class="form-control" id="youtube_url"
+                               placeholder="https://youtu.be/">
+                    </div>
+                    <div id="youtube_output"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Закрыть</button>
+                    <button type="button" class="btn btn-primary">Запустить</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        $('#model_youtube').on('show.bs.modal', function (e) {
+            $('#youtube_output').empty();
+            $('#youtube_url').val('');
+        })
+        $('#model_youtube button.btn-primary').on('click', function (e) {
+            e.preventDefault();
+            const url = $('#youtube_url').val();
+            ajax_call('/play_youtube', {'youtube_url': url}, function (data) {
+                $('#youtube_output').text(`${data['uploader']} - ${data['title']}`);
+                if ('error' in data) {
+                    alert(data['error']);
+                }
+            })
+        });
+        let last_update = 0;
+        let clock_id;
+
+        function bytesToSize(bytes) {
+            const sizes = ['B', 'KiB', 'MiB', 'GiB', 'TiB'];
+            if (bytes === 0) return 'n/a';
+            const i = Math.floor(Math.log(bytes) / Math.log(1024));
+            if (i === 0) return bytes + ' ' + sizes[i];
+            return (bytes / Math.pow(1024, i)).toFixed(1) + ' ' + sizes[i];
+        }
+
+        Number.prototype.toHHMMSS = function () {
+            const sec_num = parseInt(this, 10); // don't forget the second param
+            let hours = Math.floor(sec_num / 3600);
+            let minutes = Math.floor((sec_num - (hours * 3600)) / 60);
+            let seconds = sec_num - (hours * 3600) - (minutes * 60);
+
+            if (hours < 10) hours = "0" + hours;
+            if (minutes < 10) minutes = "0" + minutes;
+            if (seconds < 10) seconds = "0" + seconds;
+            return hours + ':' + minutes + ':' + seconds;
+        }
+
+        function error_handler(jqXHR, exception) {
+            if (jqXHR.status === 0) {
+                clearInterval(clock_id);
+                alert('Неизвестная ошибка. Перезагрузка');
+                location.reload();
+            }
+            if (jqXHR.status === 400) {
+                alert(jqXHR.statusText + " " + jqXHR.responseText);
+            } else {
+                alert(jqXHR.statusText + " " + jqXHR.status);
+            }
+            console.log(jqXHR.statusText + " " + jqXHR.status + "\n" + jqXHR.responseText);
+        }
+
+        function ajax_call(url, data, success) {
+            $.ajax({
+                url: url,
+                type: 'POST',
+                data: data,
+                success: success,
+                error: error_handler
+            });
+        }
+
+        function ajax_call_lazy(url, data, msg) {
+            ajax_call(url, data, function (data) {
+                if (!data) {
+                    alert(msg);
+                }
+            });
+        }
+
+        function shutdown() {
+            if (confirm('Выключить малину?')) {
+                $.ajax({
+                    url: '/shutdown',
+                    type: 'POST',
+                });
+            }
+        }
+
+        function start_file(name) {
+            ajax_call_lazy('/play', {'name': name}, 'Ошибка старта');
+        }
+
+        function stop_file() {
+            ajax_call_lazy('/stop', null, 'Ошибка остановки');
+        }
+
+        function pause_file() {
+            ajax_call_lazy('/pause', null, 'Ошибка паузы');
+        }
+
+        function update_state() {
+            if (Date.now() - last_update > 2000) {
+                $.ajax({
+                    url: '/state',
+                    type: 'GET',
+                    success: function (data) {
+                        let duration = data['duration'];
+                        let position = data['position'];
+                        last_update = Date.now();
+                        $('#watch_position').attr({"min": 0, "max": duration}).val(position);
+                        $('label[for="watch_position"]').text(`Прогресс (${position.toHHMMSS()}/${duration.toHHMMSS()})`)
+                    },
+                    error: error_handler
+                });
+            }
+        }
+
+        function loadTableData(items) {
+            const table = $('#table_files tbody');
+            for (const [key, value] of Object.entries(items)) {
+                table.append(`<tr>
+    <th scope="row">
+        <button type="button" class="btn btn-primary" onclick="start_file('${key}')">${key}</button>
+    </th>
+    <td>${bytesToSize(value)}</td>
+</tr>`)
+            }
+        }
+
+        $(function () {
+            $.ajax({
+                url: '/files',
+                type: 'GET',
+                success: function (data) {
+                    loadTableData(data);
+                },
+                error: error_handler
+            });
+            clock_id = setInterval(update_state, 1000);
+            $('#watch_position').on('change', function () {
+                ajax_call('/position', {'position': this.value}, function (data) {
+                    if (!data) {
+                        alert('Ошибка установки позиции');
+                    }
+                    last_update = 0;
+                });
+            });
+        });
+    </script>
+{% endblock %}
