@@ -25,7 +25,10 @@ Run command:
 export FLASK_APP="raspberrypi_omxplayer_control"
 python -m flask run --host 0.0.0.0 --port 8888
 ```
-
+OR
+```shell script
+python -m raspberrypi_omxplayer_control
+```
 Open browser at `<raspberry_ip>:8888` 
 
 # License

@@ -20,7 +20,7 @@ with open('README.md', 'rt') as f:
 
 setup(
     name=module_name,
-    version='0.1.15',
+    version='0.1.16',
     description='Web remote control for raspberrypi omxplayer',
     long_description=long_description,
     long_description_content_type='text/markdown',
