@@ -5,7 +5,6 @@ on:
     tags: ["v*"]
     branches:
       - master
-      - dev_prepare_open_source
 
 jobs:
   deploy:
