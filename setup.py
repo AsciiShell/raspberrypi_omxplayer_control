@@ -1,40 +1,48 @@
-__author__ = 'asciishell (Aleksey Podchezertsev)'
-__maintainer__ = __author__
-
-__email__ = 'dev@asciishell.ru'
-__version__ = '0.1.14'
-
-import os
-from importlib.machinery import SourceFileLoader
-
 from pkg_resources import parse_requirements
 from setuptools import find_packages, setup
 
-module_name = 'raspberrypi_omxplayer_control'
-module = SourceFileLoader(
-    module_name, os.path.join(module_name, '__init__.py')
-).load_module()
 
-
-def load_requirements(fname: str) -> list:
+def load_requirements(filename: str) -> list:
     requirements = []
-    with open(fname, 'r') as fp:
-        for req in parse_requirements(fp.read()):
-            extras = '[{}]'.format(','.join(req.extras)) if req.extras else ''
+    with open(filename, 'r') as f:
+        for requirement in parse_requirements(f.read()):
+            extras = '[{}]'.format(','.join(requirement.extras)) if requirement.extras else ''
             requirements.append(
-                '{}{}{}'.format(req.name, extras, req.specifier)
+                '{}{}{}'.format(requirement.name, extras, requirement.specifier)
             )
     return requirements
 
 
+module_name = 'raspberrypi_omxplayer_control'
+
+with open('README.md', 'rt') as f:
+    long_description = f.read()
+
 setup(
     name=module_name,
-    version=__version__,
-    author=__author__,
-    author_email=__email__,
-    description=__doc__,
+    version='0.1.16',
+    description='Web remote control for raspberrypi omxplayer',
+    long_description=long_description,
+    long_description_content_type='text/markdown',
+    url='https://github.com/AsciiShell/raspberrypi_omxplayer_control',
+    author='asciishell (Aleksey Podchezertsev)',
+    author_email='dev@asciishell.ru',
+    license='MIT',
+    classifiers=[
+        'Intended Audience :: Developers',
+        'Intended Audience :: End Users/Desktop',
+        'Programming Language :: Python :: 3',
+        'Programming Language :: Python :: 3.5',
+        'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3.7',
+        'Programming Language :: Python :: 3.8',
+        'License :: OSI Approved :: MIT License',
+        'Operating System :: POSIX',
+        'Operating System :: POSIX :: Linux',
+    ],
+    keywords=['raspberry-pi', 'omxplayer', 'remote-control', 'python3'],
     packages=find_packages(exclude=['tests']),
-    install_requires=load_requirements('requirements.txt'),
+    python_requires='>=3.5',
     entry_points={
         'console_scripts': [
             '{0} = {0}.__main__:main'.format(module_name),
@@ -42,4 +50,5 @@ setup(
     },
     include_package_data=True,
     zip_safe=False,
+    install_requires=load_requirements('requirements.txt'),
 )
