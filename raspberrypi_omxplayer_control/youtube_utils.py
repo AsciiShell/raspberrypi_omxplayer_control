@@ -1,6 +1,6 @@
 import logging
 
-import youtube_dl
+import yt_dlp
 
 logger = logging.getLogger(__name__)
 
@@ -10,7 +10,7 @@ def get_video_url(url):
         'format': 'best',
     }
 
-    with youtube_dl.YoutubeDL(options) as ydl:
+    with yt_dlp.YoutubeDL(options) as ydl:
         info_dict = ydl.extract_info(url, download=False)
         logger.info('video {} info:\n{}', url, info_dict)
         return info_dict
